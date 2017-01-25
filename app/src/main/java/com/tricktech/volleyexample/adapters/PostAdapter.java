@@ -2,14 +2,19 @@ package com.tricktech.volleyexample.adapters;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.tricktech.volleyexample.R;
 import com.tricktech.volleyexample.models.Post;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -17,14 +22,17 @@ import java.util.List;
  * Created by am on 1/24/2017.
  */
 
-public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
+public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> implements Filterable{
 
     public Context mContext;
-    public List<Post> postList;
+    public List<Post> original_items = new ArrayList<>();
+    public List<Post> filtered_items = new ArrayList<>();
+    ItemFilter mFilters = new ItemFilter();
 
     public PostAdapter(Context mContext, List<Post> postList) {
         this.mContext = mContext;
-        this.postList = postList;
+        this.original_items = postList;
+        this.filtered_items = postList;
     }
 
     @Override
@@ -36,15 +44,21 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-            Post post = postList.get(position);
+            Post post = filtered_items.get(position);
             holder.txt_title.setText(post.title);
             holder.txt_body.setText(post.body);
     }
 
     @Override
     public int getItemCount() {
-        return postList.size();
+        return filtered_items.size();
     }
+
+    @Override
+    public Filter getFilter() {
+        return mFilters;
+    }
+
 
     public class ViewHolder extends RecyclerView.ViewHolder{
 
@@ -56,4 +70,33 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.ViewHolder> {
             txt_body = (TextView) itemView.findViewById(R.id.txt_body);
         }
     }
+
+    private class ItemFilter extends Filter{
+
+        @Override
+        protected FilterResults performFiltering(CharSequence charSequence) {
+            String query = charSequence.toString().toLowerCase();
+            FilterResults results = new FilterResults();
+            final List<Post> list = original_items;
+            final List<Post> result_list = new ArrayList<>(list.size());
+            for (int i = 0; i < list.size(); i++){
+                String str_title = list.get(i).title;
+                if (str_title.toLowerCase().contains(query)){
+                    result_list.add(list.get(i));
+                }
+            }
+            results.values = result_list;
+            results.count = result_list.size();
+            return results;
+        }
+
+        @Override
+        protected void publishResults(CharSequence charSequence, FilterResults filterResults) {
+
+            filtered_items = (List<Post>) filterResults.values;
+            notifyDataSetChanged();
+
+        }
+    }
+
 }

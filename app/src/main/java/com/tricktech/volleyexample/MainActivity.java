@@ -6,12 +6,18 @@ import android.provider.Settings;
 import android.provider.SyncStateContract;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 
@@ -41,16 +47,27 @@ public class MainActivity extends AppCompatActivity implements ConnectivityRecei
     public RecyclerView recycler_post;
     public PostAdapter adapter;
 
+    private Toolbar toolbar;
+    private Toolbar searchToolbar;
+    private boolean isSearch = false;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        toolbar = (Toolbar) findViewById(R.id.toolbar_viewpager);
+        searchToolbar = (Toolbar) findViewById(R.id.toolbar_search);
+
 
         coordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorLayout);
         recycler_post = (RecyclerView) findViewById(R.id.recycler_post);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         recycler_post.setLayoutManager(layoutManager);
         recycler_post.setItemAnimator(new DefaultItemAnimator());
+
+        prepareActionBar(toolbar);
 
 
         if (checkConnectivity()){
@@ -69,6 +86,74 @@ public class MainActivity extends AppCompatActivity implements ConnectivityRecei
     protected void onResume() {
         super.onResume();
         AppController.getInstance().setConnectivityReceiver(this);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(isSearch ? R.menu.menu_search_toolbar : R.menu.menu_main, menu);
+        if (isSearch) {
+            //Toast.makeText(getApplicationContext(), "Search " + isSearch, Toast.LENGTH_SHORT).show();
+            final SearchView search = (SearchView) menu.findItem(R.id.action_search).getActionView();
+            search.setIconified(false);
+            search.setQueryHint("Search item...");
+            search.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                @Override
+                public boolean onQueryTextSubmit(String s) {
+                    return false;
+                }
+
+                @Override
+                public boolean onQueryTextChange(String s) {
+                       adapter.getFilter().filter(s);
+                    return true;
+                }
+            });
+            search.setOnCloseListener(new SearchView.OnCloseListener() {
+                @Override
+                public boolean onClose() {
+                    closeSearch();
+                    return true;
+                }
+            });
+        }
+        return super.onCreateOptionsMenu(menu);
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.action_search: {
+                isSearch = true;
+                searchToolbar.setVisibility(View.VISIBLE);
+                prepareActionBar(searchToolbar);
+                supportInvalidateOptionsMenu();
+                return true;
+            }
+            case android.R.id.home:
+                closeSearch();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void closeSearch() {
+        if (isSearch) {
+            isSearch = false;
+            prepareActionBar(toolbar);
+            searchToolbar.setVisibility(View.GONE);
+            supportInvalidateOptionsMenu();
+        }
+    }
+
+    private void prepareActionBar(Toolbar toolbar) {
+        setSupportActionBar(toolbar);
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
+        actionBar.setHomeButtonEnabled(true);
     }
 
     public boolean checkConnectivity() {
