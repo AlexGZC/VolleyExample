@@ -6,6 +6,7 @@ import android.provider.Settings;
 import android.provider.SyncStateContract;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -38,7 +39,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements ConnectivityReceiver.ConnectivityReceiverListener {
+public class MainActivity extends AppCompatActivity implements ConnectivityReceiver.ConnectivityReceiverListener,
+    SwipeRefreshLayout.OnRefreshListener{
 
     public CoordinatorLayout coordinatorLayout;
     public boolean isConnected;
@@ -50,6 +52,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityRecei
     private Toolbar toolbar;
     private Toolbar searchToolbar;
     private boolean isSearch = false;
+
+    public SwipeRefreshLayout swipeRefreshLayout;
 
 
     @Override
@@ -67,21 +71,29 @@ public class MainActivity extends AppCompatActivity implements ConnectivityRecei
         recycler_post.setLayoutManager(layoutManager);
         recycler_post.setItemAnimator(new DefaultItemAnimator());
 
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
+        swipeRefreshLayout.setOnRefreshListener(this);
+        swipeRefreshLayout.setColorSchemeResources(R.color.colorGreen);
+
         prepareActionBar(toolbar);
 
+        getData();
 
-        if (checkConnectivity()){
-            try {
-                getAllPosts();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }else {
-            showSnack();
-        }
+
     }
 
-
+   public void getData(){
+       if (checkConnectivity()){
+           try {
+               swipeRefreshLayout.setRefreshing(true);
+               getAllPosts();
+           } catch (Exception e) {
+               e.printStackTrace();
+           }
+       }else {
+           showSnack();
+       }
+   }
     @Override
     protected void onResume() {
         super.onResume();
@@ -230,9 +242,10 @@ public class MainActivity extends AppCompatActivity implements ConnectivityRecei
 
             adapter = new PostAdapter(MainActivity.this, postList);
             recycler_post.setAdapter(adapter);
-
+            swipeRefreshLayout.setRefreshing(false);
 
         } catch (JSONException e) {
+            swipeRefreshLayout.setRefreshing(false);
             e.printStackTrace();
         }
     }
@@ -241,4 +254,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityRecei
         return jsonObject != null && jsonObject.has(key) && !jsonObject.isNull(key) ? true : false;
     }
 
+    @Override
+    public void onRefresh() {
+        getData();
+    }
 }
